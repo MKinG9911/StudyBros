@@ -1,0 +1,24 @@
+Analyzing frontend...                                           
+
+warning - Unused import: 'package:provider/provider.dart' - lib\providers\notes_provider.dart:2:8 - unused_import
+warning - Unused import: '../utils/constants.dart' - lib\providers\notes_provider.dart:5:8 - unused_import
+   info - Don't invoke 'print' in production code - lib\providers\notes_provider.dart:21:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\providers\notes_provider.dart:34:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\providers\task_provider.dart:19:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\providers\task_provider.dart:32:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\providers\task_provider.dart:58:7 - avoid_print
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_planner_screen.dart:97:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_planner_screen.dart:133:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_planner_screen.dart:153:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\daily_planner_screen.dart:159:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\dashboard_screen.dart:125:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\dashboard_screen.dart:157:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\dashboard_screen.dart:244:62 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\dashboard_screen.dart:291:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\dashboard_screen.dart:303:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\notes_screen.dart:66:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\notes_screen.dart:94:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\notes_screen.dart:114:44 - deprecated_member_use
+  error - The argument type 'CardTheme' can't be assigned to the parameter type 'CardThemeData?'.  - lib\utils\theme.dart:18:14 - argument_type_not_assignable
+  error - The name 'MyApp' isn't a class - test\widget_test.dart:16:35 - creation_with_non_type
+
