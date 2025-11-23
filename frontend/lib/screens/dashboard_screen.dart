@@ -14,6 +14,7 @@ import '../providers/user_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../models/dashboard_section.dart';
 import 'profile_screen.dart';
+import 'focus_mode_screen.dart';
 import 'dart:io';
 
 class DashboardScreen extends StatefulWidget {
@@ -57,7 +58,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.98, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              ),
+              child: child,
+            ),
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey<int>(_selectedIndex),
+          child: _screens[_selectedIndex],
+        ),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -247,134 +265,190 @@ class HomeDashboard extends StatelessWidget {
   Widget _buildFocusTimerSection() {
     return Consumer<FocusTimerProvider>(
       builder: (context, timerProvider, child) {
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.primary, Color(0xFF8F85FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const FocusModeScreen()),
+            );
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.primary, Color(0xFF8F85FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Focus Timer",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Focus Timer",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  if (!timerProvider.isRunning)
-                    DropdownButton<int>(
-                      value: timerProvider.durationMinutes,
-                      dropdownColor: AppColors.primary,
-                      style: const TextStyle(color: Colors.white),
-                      underline: Container(),
-                      items:
-                          [
-                                5,
-                                10,
-                                15,
-                                25,
-                                30,
-                                45,
-                                60,
-                                90,
-                                120,
-                                180,
-                                240,
-                                300,
-                                360,
-                              ]
-                              .map(
-                                (mins) => DropdownMenuItem(
-                                  value: mins,
-                                  child: Text('${mins}m'),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          timerProvider.setDuration(value);
-                        }
-                      },
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    timerProvider.displayTime,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      if (timerProvider.isRunning || timerProvider.isPaused)
-                        IconButton(
-                          onPressed: () => timerProvider.resetTimer(),
-                          icon: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.refresh,
-                              color: Colors.white,
-                              size: 24,
-                            ),
+                    if (!timerProvider.isRunning)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
                           ),
                         ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () {
-                          if (timerProvider.isRunning) {
-                            timerProvider.pauseTimer();
-                          } else {
-                            timerProvider.startTimer();
-                          }
-                        },
-                        icon: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            timerProvider.isRunning
-                                ? Icons.pause
-                                : Icons.play_arrow,
-                            color: Colors.white,
-                            size: 32,
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: timerProvider.durationMinutes,
+                            dropdownColor: AppColors.primary,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Colors.white,
+                            ),
+                            items:
+                                [
+                                      5,
+                                      10,
+                                      15,
+                                      25,
+                                      30,
+                                      45,
+                                      60,
+                                      90,
+                                      120,
+                                      180,
+                                      240,
+                                      300,
+                                      360,
+                                    ]
+                                    .map(
+                                      (mins) => DropdownMenuItem(
+                                        value: mins,
+                                        child: Text('${mins}m'),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                timerProvider.setDuration(value);
+                              }
+                            },
                           ),
                         ),
                       ),
-                    ],
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      timerProvider.displayTime,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        if (timerProvider.isRunning || timerProvider.isPaused)
+                          GestureDetector(
+                            onTap: () => timerProvider.resetTimer(),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.refresh,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 16),
+                        GestureDetector(
+                          onTap: () {
+                            if (timerProvider.isRunning) {
+                              timerProvider.pauseTimer();
+                            } else {
+                              timerProvider.startTimer();
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              timerProvider.isRunning
+                                  ? Icons.pause
+                                  : Icons.play_arrow,
+                              color: AppColors.primary,
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (timerProvider.isRunning) ...[
+                  const SizedBox(height: 12),
+                  const Center(
+                    child: Text(
+                      "Tap to focus more",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -383,7 +457,6 @@ class HomeDashboard extends StatelessWidget {
 
   Widget _buildQuickOverviewSection() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Quick Overview", style: AppTextStyles.heading2),
         const SizedBox(height: 16),
@@ -655,7 +728,7 @@ class HomeDashboard extends StatelessWidget {
             }
             final recentNotes = notesProvider.notes.take(3).toList();
             final remainingCount = notesProvider.notes.length - 3;
-            
+
             return Column(
               children: [
                 ...recentNotes.map(

@@ -265,6 +265,12 @@ class _DailyPlannerScreenState extends State<DailyPlannerScreen> {
             ),
           ),
           IconButton(
+            icon: Icon(Icons.edit_outlined, color: AppColors.primary),
+            onPressed: () {
+              _showEditTaskDialog(context, task);
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
             onPressed: () {
               showDialog(
@@ -412,6 +418,125 @@ class _DailyPlannerScreenState extends State<DailyPlannerScreen> {
                 }
               },
               child: const Text("Add"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditTaskDialog(BuildContext context, Task task) {
+    final titleController = TextEditingController(text: task.title);
+    TimeOfDay startTime = TimeOfDay.fromDateTime(task.startTime);
+    TimeOfDay endTime = TimeOfDay.fromDateTime(task.endTime);
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Edit Task"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: "Task Title",
+                  hintText: "e.g., Study Math",
+                  hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
+                  border: const OutlineInputBorder(),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey.shade400),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: startTime,
+                        );
+                        if (time != null) {
+                          setState(() {
+                            startTime = time;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.access_time),
+                      label: Text(startTime.format(context)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: endTime,
+                        );
+                        if (time != null) {
+                          setState(() {
+                            endTime = time;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.access_time),
+                      label: Text(endTime.format(context)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (titleController.text.isNotEmpty) {
+                  final now = task.date;
+                  final start = DateTime(
+                    now.year,
+                    now.month,
+                    now.day,
+                    startTime.hour,
+                    startTime.minute,
+                  );
+                  final end = DateTime(
+                    now.year,
+                    now.month,
+                    now.day,
+                    endTime.hour,
+                    endTime.minute,
+                  );
+
+                  final updatedTask = Task(
+                    id: task.id,
+                    userId: task.userId,
+                    title: titleController.text,
+                    startTime: start,
+                    endTime: end,
+                    date: task.date,
+                    isCompleted: task.isCompleted,
+                  );
+
+                  Provider.of<TaskProvider>(
+                    context,
+                    listen: false,
+                  ).updateTask(updatedTask);
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Update"),
             ),
           ],
         ),

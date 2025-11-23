@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-// import '../services/notification_service.dart'; // Temporarily disabled
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FocusTimerProvider with ChangeNotifier {
   int durationMinutes = 25; // Default Pomodoro duration
@@ -9,9 +10,19 @@ class FocusTimerProvider with ChangeNotifier {
   bool _isRunning = false;
   bool _isPaused = false;
 
+  // New features
+  String _focusText = "Stay focused no matter what brings you down";
+  bool _isScreenOn = false;
+
+  FocusTimerProvider() {
+    _loadPreferences();
+  }
+
   int get remainingSeconds => _remainingSeconds;
   bool get isRunning => _isRunning;
   bool get isPaused => _isPaused;
+  String get focusText => _focusText;
+  bool get isScreenOn => _isScreenOn;
 
   String get displayTime {
     final minutes = _remainingSeconds ~/ 60;
@@ -24,11 +35,43 @@ class FocusTimerProvider with ChangeNotifier {
     return (_remainingSeconds / totalSeconds).clamp(0.0, 1.0);
   }
 
+  int get elapsedSeconds {
+    return (durationMinutes * 60) - _remainingSeconds;
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    _focusText =
+        prefs.getString('focus_text') ??
+        "Stay focused no matter what brings you down";
+    notifyListeners();
+  }
+
+  Future<void> updateFocusText(String newText) async {
+    if (newText.length > 100) return;
+    _focusText = newText;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('focus_text', newText);
+    notifyListeners();
+  }
+
+  void toggleScreenOn() {
+    _isScreenOn = !_isScreenOn;
+    if (_isScreenOn) {
+      WakelockPlus.enable();
+    } else {
+      WakelockPlus.disable();
+    }
+    notifyListeners();
+  }
+
   void startTimer() {
     if (_isRunning) return;
 
     _isRunning = true;
     _isPaused = false;
+    if (_isScreenOn)
+      WakelockPlus.enable(); // Ensure wake lock is active if enabled
     notifyListeners();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -47,6 +90,7 @@ class FocusTimerProvider with ChangeNotifier {
     _timer?.cancel();
     _isRunning = false;
     _isPaused = true;
+    WakelockPlus.disable(); // Disable wake lock when paused to save battery
     notifyListeners();
   }
 
@@ -55,6 +99,7 @@ class FocusTimerProvider with ChangeNotifier {
     _isRunning = false;
     _isPaused = false;
     _remainingSeconds = durationMinutes * 60;
+    WakelockPlus.disable();
     notifyListeners();
   }
 
@@ -70,6 +115,7 @@ class FocusTimerProvider with ChangeNotifier {
     _timer?.cancel();
     _isRunning = false;
     _isPaused = false;
+    WakelockPlus.disable();
 
     // Show notification - TEMPORARILY DISABLED
     // NotificationService.showTimerComplete();
@@ -82,6 +128,7 @@ class FocusTimerProvider with ChangeNotifier {
   @override
   void dispose() {
     _timer?.cancel();
+    WakelockPlus.disable();
     super.dispose();
   }
 }

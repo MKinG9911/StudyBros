@@ -195,7 +195,10 @@ class _ExamCardState extends State<ExamCard> {
             ),
           ),
         ),
-        title: Text(widget.exam.subject, style: AppTextStyles.heading2),
+        title: Text(
+          widget.exam.subject,
+          style: AppTextStyles.heading2.copyWith(fontSize: 18),
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -257,79 +260,103 @@ class _ExamCardState extends State<ExamCard> {
           ],
         ),
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("Syllabus Checklist", style: AppTextStyles.heading2),
-                const SizedBox(height: 8),
-                ...widget.exam.syllabus.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final topic = entry.value;
-                  return CheckboxListTile(
-                    title: Text(
-                      topic.title,
-                      style: TextStyle(
-                        decoration: topic.isCompleted
-                            ? TextDecoration.lineThrough
-                            : null,
-                        color: topic.isCompleted ? Colors.grey : Colors.black87,
+          GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Syllabus Checklist",
+                        style: AppTextStyles.heading2.copyWith(fontSize: 16),
                       ),
-                    ),
-                    value: topic.isCompleted,
-                    onChanged: (value) {
-                      Provider.of<ExamProvider>(
-                        context,
-                        listen: false,
-                      ).toggleSyllabusItem(widget.exam, index);
-                    },
-                    secondary: IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        size: 18,
-                        color: Colors.grey,
+                      Text(
+                        "Add topics to track",
+                        style: AppTextStyles.caption.copyWith(fontSize: 10),
                       ),
-                      onPressed: () {
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...widget.exam.syllabus.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final topic = entry.value;
+                    return CheckboxListTile(
+                      title: Text(
+                        topic.title,
+                        style: TextStyle(
+                          decoration: topic.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: topic.isCompleted
+                              ? Colors.grey
+                              : Colors.black87,
+                          fontSize: 14,
+                        ),
+                      ),
+                      value: topic.isCompleted,
+                      onChanged: (value) {
                         Provider.of<ExamProvider>(
                           context,
                           listen: false,
-                        ).deleteSyllabusTopic(widget.exam, index);
+                        ).toggleSyllabusItem(widget.exam, index);
                       },
-                    ),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                  );
-                }),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _topicController,
-                        decoration: InputDecoration(
-                          hintText: "Add topic...",
-                          hintStyle: TextStyle(
-                            color: Colors.grey.withOpacity(0.7),
-                          ),
-                          isDense: true,
-                          border: const OutlineInputBorder(),
+                      secondary: IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: Colors.grey,
                         ),
-                        onSubmitted: (_) => _addTopic(),
+                        onPressed: () {
+                          Provider.of<ExamProvider>(
+                            context,
+                            listen: false,
+                          ).deleteSyllabusTopic(widget.exam, index);
+                        },
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: _addTopic,
-                      icon: const Icon(
-                        Icons.add_circle,
-                        color: AppColors.primary,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    );
+                  }),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _topicController,
+                          decoration: InputDecoration(
+                            hintText: "Add topic...",
+                            hintStyle: TextStyle(
+                              color: Colors.grey.withOpacity(0.7),
+                              fontSize: 14,
+                            ),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          onSubmitted: (_) => _addTopic(),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: _addTopic,
+                        icon: const Icon(
+                          Icons.add_circle,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:open_filex/open_filex.dart';
+import 'dart:io';
 import '../providers/notes_provider.dart';
 import '../models/note_model.dart';
 import '../utils/constants.dart';
 import '../services/file_attachment_service.dart';
+import 'note_detail_screen.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -20,6 +23,80 @@ class _NotesScreenState extends State<NotesScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<NotesProvider>(context, listen: false).fetchNotes();
     });
+  }
+
+  Future<void> _openFile(String path) async {
+    final result = await OpenFilex.open(path);
+    if (result.type != ResultType.done) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Could not open file: ${result.message}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showImageGallery(
+    BuildContext context,
+    List<String> imagePaths,
+    int initialIndex,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            PageView.builder(
+              itemCount: imagePaths.length,
+              controller: PageController(initialPage: initialIndex),
+              itemBuilder: (context, index) {
+                return InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Image.file(
+                    File(imagePaths[index]),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.broken_image,
+                              color: Colors.white,
+                              size: 48,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "Image not found",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -78,105 +155,125 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget _buildNoteCard(Note note, int index) {
     final color = note.colorValue != 0 ? Color(note.colorValue) : Colors.white;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NoteDetailScreen(
+              note: note,
+              onEdit: () => _showEditNoteDialog(context, note),
+            ),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  note.title,
-                  style: AppTextStyles.heading2.copyWith(fontSize: 18),
-                  maxLines: 2,
+        );
+      },
+      child: Hero(
+        tag: 'note_${note.key}',
+        child: Material(
+          color: color,
+          borderRadius: BorderRadius.circular(16),
+          elevation: 2,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            width: double.infinity,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        note.title,
+                        style: AppTextStyles.heading2.copyWith(fontSize: 18),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () => _showEditNoteDialog(context, note),
+                          child: const Icon(
+                            Icons.edit,
+                            color: AppColors.primary,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            Provider.of<NotesProvider>(
+                              context,
+                              listen: false,
+                            ).toggleFavorite(note);
+                          },
+                          child: Icon(
+                            note.isFavorite ? Icons.star : Icons.star_border,
+                            color: note.isFavorite
+                                ? Colors.orange
+                                : Colors.grey,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  note.content,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 14,
+                    color: AppColors.textPrimary.withOpacity(0.8),
+                  ),
+                  maxLines: 6,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+                if (note.imagePaths.isNotEmpty || note.pdfPaths.isNotEmpty)
+                  const SizedBox(height: 12),
+                if (note.imagePaths.isNotEmpty) ...[
                   GestureDetector(
-                    onTap: () => _showEditNoteDialog(context, note),
-                    child: const Icon(
-                      Icons.edit,
-                      color: AppColors.primary,
-                      size: 18,
+                    onTap: () => _showImageGallery(context, note.imagePaths, 0),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.image, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${note.imagePaths.length} image${note.imagePaths.length > 1 ? 's' : ''}",
+                          style: AppTextStyles.caption.copyWith(fontSize: 12),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      Provider.of<NotesProvider>(
-                        context,
-                        listen: false,
-                      ).toggleFavorite(note);
-                    },
-                    child: Icon(
-                      note.isFavorite ? Icons.star : Icons.star_border,
-                      color: note.isFavorite ? Colors.orange : Colors.grey,
-                      size: 20,
-                    ),
-                  ),
+                  const SizedBox(height: 4),
                 ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            note.content,
-            style: AppTextStyles.body.copyWith(
-              fontSize: 14,
-              color: AppColors.textPrimary.withOpacity(0.8),
-            ),
-            maxLines: 6,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (note.imagePaths.isNotEmpty || note.pdfPaths.isNotEmpty)
-            const SizedBox(height: 12),
-          if (note.imagePaths.isNotEmpty) ...[
-            Row(
-              children: [
-                const Icon(Icons.image, size: 14, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  "${note.imagePaths.length} image${note.imagePaths.length > 1 ? 's' : ''}",
-                  style: AppTextStyles.caption.copyWith(fontSize: 12),
-                ),
+                if (note.pdfPaths.isNotEmpty)
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: note.pdfPaths.map((pdfPath) {
+                      return GestureDetector(
+                        onTap: () => _openFile(pdfPath),
+                        child: Chip(
+                          avatar: const Icon(Icons.picture_as_pdf, size: 12),
+                          label: Text(
+                            FileAttachmentService.getFileName(pdfPath),
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      );
+                    }).toList(),
+                  ),
               ],
             ),
-            const SizedBox(height: 4),
-          ],
-          if (note.pdfPaths.isNotEmpty)
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: note.pdfPaths.map((pdfPath) {
-                return Chip(
-                  avatar: const Icon(Icons.picture_as_pdf, size: 12),
-                  label: Text(
-                    FileAttachmentService.getFileName(pdfPath),
-                    style: const TextStyle(fontSize: 10),
-                  ),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                );
-              }).toList(),
-            ),
-        ],
+          ),
+        ),
       ),
     );
   }

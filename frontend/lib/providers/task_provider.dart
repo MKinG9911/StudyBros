@@ -54,6 +54,15 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
+  Future<void> updateTask(Task task) async {
+    try {
+      await _hiveService.updateTask(task);
+      await fetchTasks(); // Refresh list
+    } catch (e) {
+      print(e);
+    }
+  }
+
   Future<void> deleteTask(String id) async {
     try {
       await _hiveService.deleteTask(id);
