@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
-import '../models/class_routine_model.dart';
-import '../services/hive_service.dart';
+import '../providers/user_provider.dart';
 import '../utils/constants.dart';
 
 class ClassRoutineScreen extends StatefulWidget {
@@ -13,44 +13,19 @@ class ClassRoutineScreen extends StatefulWidget {
 }
 
 class _ClassRoutineScreenState extends State<ClassRoutineScreen> {
-  final HiveService _hiveService = HiveService();
-  ClassRoutine? _routine;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadRoutine();
-  }
-
-  Future<void> _loadRoutine() async {
-    setState(() => _isLoading = true);
-    try {
-      final routines = await _hiveService.getClassRoutines();
-      if (routines.isNotEmpty) {
-        setState(() => _routine = routines.first);
-      }
-    } catch (e) {
-      print(e);
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickImage(BuildContext context, ImageSource source) async {
     try {
       final picker = ImagePicker();
       final image = await picker.pickImage(source: source);
 
       if (image != null) {
-        final routine = ClassRoutine(
-          userId: 'local',
-          imagePath: image.path,
-          uploadedAt: DateTime.now(),
-        );
+        if (!mounted) return;
 
-        await _hiveService.addClassRoutine(routine);
-        await _loadRoutine();
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final updatedUser = userProvider.user;
+        updatedUser.classRoutinePath = image.path;
+
+        await userProvider.updateUser(updatedUser);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -67,19 +42,70 @@ class _ClassRoutineScreenState extends State<ClassRoutineScreen> {
     }
   }
 
+  Future<void> _deleteRoutine(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Routine"),
+        content: const Text(
+          "Are you sure you want to delete the class routine?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final updatedUser = userProvider.user;
+      updatedUser.classRoutinePath = null;
+
+      await userProvider.updateUser(updatedUser);
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Class routine deleted')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Class Routine')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _routine == null
-          ? _buildEmptyState()
-          : _buildRoutineView(),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.upload, color: Colors.white),
-        onPressed: () => _showImageSourceDialog(),
+      body: Consumer<UserProvider>(
+        builder: (context, userProvider, child) {
+          final routinePath = userProvider.user.classRoutinePath;
+
+          if (userProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return routinePath == null
+              ? _buildEmptyState()
+              : _buildRoutineView(context, routinePath);
+        },
+      ),
+      floatingActionButton: Consumer<UserProvider>(
+        builder: (context, userProvider, child) {
+          if (userProvider.user.classRoutinePath != null)
+            return const SizedBox.shrink();
+          return FloatingActionButton(
+            backgroundColor: AppColors.primary,
+            child: const Icon(Icons.upload, color: Colors.white),
+            onPressed: () => _showImageSourceDialog(context),
+          );
+        },
       ),
     );
   }
@@ -106,16 +132,14 @@ class _ClassRoutineScreenState extends State<ClassRoutineScreen> {
     );
   }
 
-  Widget _buildRoutineView() {
+  Widget _buildRoutineView(BuildContext context, String path) {
     return Column(
       children: [
         Expanded(
           child: InteractiveViewer(
             minScale: 0.5,
             maxScale: 4.0,
-            child: Center(
-              child: Image.file(File(_routine!.imagePath), fit: BoxFit.contain),
-            ),
+            child: Center(child: Image.file(File(path), fit: BoxFit.contain)),
           ),
         ),
         Padding(
@@ -124,15 +148,12 @@ class _ClassRoutineScreenState extends State<ClassRoutineScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton.icon(
-                onPressed: () => _showImageSourceDialog(),
+                onPressed: () => _showImageSourceDialog(context),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Replace'),
               ),
               OutlinedButton.icon(
-                onPressed: () async {
-                  await _hiveService.deleteClassRoutine(_routine!.id!);
-                  await _loadRoutine();
-                },
+                onPressed: () => _deleteRoutine(context),
                 icon: const Icon(Icons.delete),
                 label: const Text('Delete'),
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
@@ -144,7 +165,7 @@ class _ClassRoutineScreenState extends State<ClassRoutineScreen> {
     );
   }
 
-  void _showImageSourceDialog() {
+  void _showImageSourceDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -154,7 +175,7 @@ class _ClassRoutineScreenState extends State<ClassRoutineScreen> {
           TextButton.icon(
             onPressed: () {
               Navigator.pop(context);
-              _pickImage(ImageSource.camera);
+              _pickImage(context, ImageSource.camera);
             },
             icon: const Icon(Icons.camera_alt),
             label: const Text('Camera'),
@@ -162,7 +183,7 @@ class _ClassRoutineScreenState extends State<ClassRoutineScreen> {
           TextButton.icon(
             onPressed: () {
               Navigator.pop(context);
-              _pickImage(ImageSource.gallery);
+              _pickImage(context, ImageSource.gallery);
             },
             icon: const Icon(Icons.photo_library),
             label: const Text('Gallery'),

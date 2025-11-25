@@ -19,11 +19,15 @@ class User extends HiveObject {
   @HiveField(4)
   String? department;
 
+  @HiveField(5)
+  String? classRoutinePath;
+
   User({
     this.name = 'Student',
     this.profilePicturePath,
     this.institutionName,
     this.institutionId,
     this.department,
+    this.classRoutinePath,
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../utils/constants.dart';
 import 'daily_planner_screen.dart';
@@ -59,7 +60,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 180),
+        duration: const Duration(milliseconds: 150),
         transitionBuilder: (Widget child, Animation<double> animation) {
           return FadeTransition(
             opacity: animation,
@@ -226,8 +227,8 @@ class HomeDashboard extends StatelessWidget {
                             case DashboardSectionType.focusTimer:
                               sectionWidget = _buildFocusTimerSection();
                               break;
-                            case DashboardSectionType.quickOverview:
-                              sectionWidget = _buildQuickOverviewSection();
+                            case DashboardSectionType.dailyTasks:
+                              sectionWidget = _buildDailyTasksSection();
                               break;
                             case DashboardSectionType.upcomingExams:
                               sectionWidget = _buildUpcomingExamsSection();
@@ -455,58 +456,177 @@ class HomeDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickOverviewSection() {
-    return Column(
-      children: [
-        Text("Quick Overview", style: AppTextStyles.heading2),
-        const SizedBox(height: 16),
-        Row(
+  Widget _buildDailyTasksSection() {
+    return Consumer<TaskProvider>(
+      builder: (context, taskProvider, child) {
+        final today = DateTime.now();
+        final tasks = taskProvider.tasks.where((task) {
+          final isSameDay =
+              task.date.year == today.year &&
+              task.date.month == today.month &&
+              task.date.day == today.day;
+          return isSameDay;
+        }).toList();
+
+        // Sort by start time
+        tasks.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+        // Take top 3
+        final displayTasks = tasks.take(3).toList();
+
+        return Column(
           children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => onNavigateToTab(1), // Navigate to Daily Planner
-                child: Consumer<TaskProvider>(
-                  builder: (context, taskProvider, child) {
-                    final today = DateTime.now();
-                    final incompleteTasks = taskProvider.tasks.where((task) {
-                      final isSameDay =
-                          task.date.year == today.year &&
-                          task.date.month == today.month &&
-                          task.date.day == today.day;
-                      return isSameDay && !task.isCompleted;
-                    }).length;
-                    return _buildInfoCard(
-                      title: "Daily Tasks",
-                      value: "$incompleteTasks Left",
-                      icon: Icons.check_circle_outline,
-                      color: AppColors.secondary,
-                    );
-                  },
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Daily Tasks", style: AppTextStyles.heading2),
+                TextButton(
+                  onPressed: () =>
+                      onNavigateToTab(1), // Navigate to Daily Planner
+                  child: const Text("View All"),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => onNavigateToTab(3), // Navigate to Exams
-                child: Consumer<ExamProvider>(
-                  builder: (context, examProvider, child) {
-                    final upcomingExams = examProvider.exams
-                        .where((exam) => exam.examDate.isAfter(DateTime.now()))
-                        .length;
-                    return _buildInfoCard(
-                      title: "Exams",
-                      value: "$upcomingExams Upcoming",
-                      icon: Icons.event,
-                      color: AppColors.accent,
-                    );
-                  },
+            const SizedBox(height: 16),
+            if (displayTasks.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
                 ),
-              ),
-            ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.task_alt,
+                      size: 48,
+                      color: AppColors.textSecondary.withOpacity(0.3),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No tasks for today",
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...displayTasks.map((task) {
+                final now = DateTime.now();
+                // Check if task time is passed (using end time or start time? usually end time implies due)
+                // User said "If those 3 tasks' time are passed from the current time then show 'due task'"
+                // I'll use end time for "passed".
+                final isPassed = task.endTime.isBefore(now);
+                final isCompleted = task.isCompleted;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isCompleted
+                          ? AppColors.accent.withOpacity(0.5)
+                          : Colors.transparent,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Checkbox
+                      GestureDetector(
+                        onTap: () {
+                          taskProvider.toggleTaskCompletion(task);
+                        },
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isCompleted
+                                ? AppColors.accent
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: isCompleted
+                                  ? AppColors.accent
+                                  : AppColors.textSecondary,
+                              width: 2,
+                            ),
+                          ),
+                          child: isCompleted
+                              ? const Icon(
+                                  Icons.check,
+                                  size: 16,
+                                  color: Colors.white,
+                                )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Task Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              task.title,
+                              style: AppTextStyles.body.copyWith(
+                                decoration: isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: isCompleted
+                                    ? AppColors.textSecondary
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "${TimeOfDay.fromDateTime(task.startTime).format(context)} - ${TimeOfDay.fromDateTime(task.endTime).format(context)}",
+                              style: AppTextStyles.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Status Label
+                      if (!isCompleted)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isPassed
+                                ? Colors.red.withOpacity(0.1)
+                                : Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            isPassed ? "Due Task" : "Task to do",
+                            style: TextStyle(
+                              color: isPassed ? Colors.red : Colors.green,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -519,7 +639,49 @@ class HomeDashboard extends StatelessWidget {
                 .toList()
               ..sort((a, b) => a.examDate.compareTo(b.examDate));
 
-        if (upcomingExams.isEmpty) return const SizedBox.shrink();
+        if (upcomingExams.isEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Upcoming Exams", style: AppTextStyles.heading2),
+                  TextButton(
+                    onPressed: () => onNavigateToTab(3),
+                    child: const Text("View All"),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.school_outlined,
+                      size: 48,
+                      color: AppColors.textSecondary.withOpacity(0.3),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No upcoming exams",
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
 
         final topExams = upcomingExams.take(2).toList();
 
@@ -575,22 +737,7 @@ class HomeDashboard extends StatelessWidget {
                         color: statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Column(
-                        children: [
-                          Text(
-                            "${exam.examDate.day}",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: statusColor,
-                            ),
-                          ),
-                          Text(
-                            _getMonth(exam.examDate.month),
-                            style: TextStyle(fontSize: 12, color: statusColor),
-                          ),
-                        ],
-                      ),
+                      child: Icon(Icons.school, color: statusColor),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -599,19 +746,15 @@ class HomeDashboard extends StatelessWidget {
                         children: [
                           Text(
                             exam.subject,
-                            style: const TextStyle(
+                            style: AppTextStyles.heading2.copyWith(
                               fontSize: 16,
-                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            daysLeft == 0
-                                ? "Today!"
-                                : daysLeft == 1
-                                ? "Tomorrow"
-                                : "$daysLeft days left",
-                            style: TextStyle(
+                            "${daysLeft <= 0 ? 'Today' : '$daysLeft days left'} • ${DateFormat('MMM d').format(exam.examDate)}",
+                            style: AppTextStyles.caption.copyWith(
+                              fontSize: 12,
                               color: statusColor,
                               fontWeight: FontWeight.w600,
                             ),
@@ -622,7 +765,7 @@ class HomeDashboard extends StatelessWidget {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         );
       },
@@ -630,281 +773,213 @@ class HomeDashboard extends StatelessWidget {
   }
 
   Widget _buildClassRoutineSection(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ClassRoutineScreen()),
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, child) {
+        final routinePath = userProvider.user.classRoutinePath;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Class Routine", style: AppTextStyles.heading2),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ClassRoutineScreen(),
+                  ),
+                );
+              },
+              child: routinePath == null
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withOpacity(0.05),
+                            AppColors.accent.withOpacity(0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.primary.withOpacity(0.1),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.calendar_month_outlined,
+                            size: 48,
+                            color: AppColors.primary.withOpacity(0.5),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            "Tap to view/upload routine",
+                            style: AppTextStyles.body.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Container(
+                      height: 150,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        image: DecorationImage(
+                          image: FileImage(File(routinePath)),
+                          fit: BoxFit.cover,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.5),
+                            ],
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        alignment: Alignment.bottomLeft,
+                        child: const Text(
+                          "Tap to view routine",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+          ],
         );
       },
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 231, 250, 89).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.calendar_month,
-                color: Color.fromARGB(255, 255, 237, 79),
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 16),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Class Routine",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    "View or upload your schedule",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: AppColors.textSecondary,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   Widget _buildQuickNotesSection(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Quick Notes", style: AppTextStyles.heading2),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const NotesScreen()),
-                );
-              },
-              child: const Text("View All"),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Consumer<NotesProvider>(
-          builder: (context, notesProvider, child) {
-            if (notesProvider.notes.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 231, 218, 247),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Text("No notes yet. Add one!"),
-              );
-            }
-            final recentNotes = notesProvider.notes.take(3).toList();
-            final remainingCount = notesProvider.notes.length - 3;
+    return Consumer<NotesProvider>(
+      builder: (context, notesProvider, child) {
+        final recentNotes = notesProvider.notes.take(3).toList();
 
-            return Column(
+        if (recentNotes.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ...recentNotes.map(
-                  (note) => Container(
-                    margin: const EdgeInsets.only(bottom: 12),
+                Text("Quick Notes", style: AppTextStyles.heading2),
+                TextButton(
+                  onPressed: () => onNavigateToTab(4),
+                  child: const Text("View All"),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: recentNotes.length,
+                itemBuilder: (context, index) {
+                  final note = recentNotes[index];
+                  return Container(
+                    width: 140,
+                    margin: const EdgeInsets.only(right: 16),
                     padding: const EdgeInsets.all(16),
-                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color: note.colorValue != 0
-                          ? Color(note.colorValue)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      color: Color(note.colorValue),
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                note.title,
-                                style: AppTextStyles.heading2.copyWith(
-                                  fontSize: 16,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (note.isFavorite)
-                              const Icon(
-                                Icons.star,
-                                color: Colors.orange,
-                                size: 16,
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
                         Text(
-                          note.content,
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.textPrimary.withOpacity(0.7),
+                          note.title,
+                          style: AppTextStyles.heading2.copyWith(
+                            fontSize: 16,
+                            color: AppColors.textPrimary,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (remainingCount > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Center(
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const NotesScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          "+$remainingCount more notes",
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
+                        const Spacer(),
+                        Text(
+                          DateFormat(
+                            'MMM d',
+                          ).format(note.createdAt ?? DateTime.now()),
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textPrimary.withOpacity(0.7),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+                  );
+                },
+              ),
             ),
-            child: Icon(icon, color: color),
-          ),
-          const SizedBox(height: 16),
-          Text(value, style: AppTextStyles.heading2.copyWith(fontSize: 20)),
-          const SizedBox(height: 4),
-          Text(title, style: AppTextStyles.caption),
-        ],
-      ),
+          ],
+        );
+      },
     );
-  }
-
-  String _getMonth(int month) {
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    return months[month - 1];
   }
 
   void _showCustomizeDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => Consumer<DashboardProvider>(
-        builder: (context, dashboardProvider, child) => AlertDialog(
-          title: const Text("Customize Dashboard"),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: dashboardProvider.sections.length,
-              itemBuilder: (context, index) {
-                final section = dashboardProvider.sections[index];
-                final sectionName = _getSectionName(section.type);
-                final isFirst = index == 0;
-                final isLast = index == dashboardProvider.sections.length - 1;
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
+        builder: (context, dashboardProvider, child) {
+          return AlertDialog(
+            title: const Text("Customize Dashboard"),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ReorderableListView.builder(
+                shrinkWrap: true,
+                itemCount: dashboardProvider.sections.length,
+                onReorder: (oldIndex, newIndex) {
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
+                  dashboardProvider.reorderSections(oldIndex, newIndex);
+                },
+                itemBuilder: (context, index) {
+                  final section = dashboardProvider.sections[index];
+                  return ListTile(
+                    key: ValueKey(section.id),
                     leading: Icon(_getSectionIcon(section.type)),
-                    title: Text(sectionName),
+                    title: Text(_getSectionName(section.type)),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: Icon(
-                            Icons.arrow_upward,
-                            color: isFirst ? Colors.grey : AppColors.primary,
-                          ),
-                          onPressed: isFirst
+                          icon: const Icon(Icons.arrow_upward),
+                          onPressed: index == 0
                               ? null
                               : () {
                                   dashboardProvider.reorderSections(
@@ -914,11 +989,9 @@ class HomeDashboard extends StatelessWidget {
                                 },
                         ),
                         IconButton(
-                          icon: Icon(
-                            Icons.arrow_downward,
-                            color: isLast ? Colors.grey : AppColors.primary,
-                          ),
-                          onPressed: isLast
+                          icon: const Icon(Icons.arrow_downward),
+                          onPressed:
+                              index == dashboardProvider.sections.length - 1
                               ? null
                               : () {
                                   dashboardProvider.reorderSections(
@@ -929,24 +1002,24 @@ class HomeDashboard extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                dashboardProvider.resetToDefault();
-              },
-              child: const Text("Reset to Default"),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Done"),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  dashboardProvider.resetToDefault();
+                },
+                child: const Text("Reset to Default"),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Done"),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -955,8 +1028,8 @@ class HomeDashboard extends StatelessWidget {
     switch (type) {
       case DashboardSectionType.focusTimer:
         return 'Focus Timer';
-      case DashboardSectionType.quickOverview:
-        return 'Quick Overview';
+      case DashboardSectionType.dailyTasks:
+        return 'Daily Tasks';
       case DashboardSectionType.upcomingExams:
         return 'Upcoming Exams';
       case DashboardSectionType.classRoutine:
@@ -972,8 +1045,8 @@ class HomeDashboard extends StatelessWidget {
     switch (type) {
       case DashboardSectionType.focusTimer:
         return Icons.timer;
-      case DashboardSectionType.quickOverview:
-        return Icons.dashboard;
+      case DashboardSectionType.dailyTasks:
+        return Icons.check_circle;
       case DashboardSectionType.upcomingExams:
         return Icons.school;
       case DashboardSectionType.classRoutine:
