@@ -4,7 +4,7 @@ import 'dart:convert';
 
 class GeminiService {
   // API Key - TODO: Move to environment variables for production
-  static const String _apiKey = 'AIzaSyDR7NGZZGRZByeVBpc5VsbS_nwPpirSvv0';
+  static const String _apiKey =;
 
   static Future<List<Task>> parseScheduleText(
     String input,
