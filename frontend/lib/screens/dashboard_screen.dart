@@ -17,6 +17,7 @@ import '../models/dashboard_section.dart';
 import 'profile_screen.dart';
 import 'focus_mode_screen.dart';
 import 'dart:io';
+import 'package:animated_check/animated_check.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -471,8 +472,11 @@ class HomeDashboard extends StatelessWidget {
         // Sort by start time
         tasks.sort((a, b) => a.startTime.compareTo(b.startTime));
 
-        // Take top 3
-        final displayTasks = tasks.take(3).toList();
+        // Filter out completed tasks, then take top 3
+        final incompleteTasks = tasks
+            .where((task) => !task.isCompleted)
+            .toList();
+        final displayTasks = incompleteTasks.take(3).toList();
 
         return Column(
           children: [
@@ -516,112 +520,10 @@ class HomeDashboard extends StatelessWidget {
               )
             else
               ...displayTasks.map((task) {
-                final now = DateTime.now();
-                // Check if task time is passed (using end time or start time? usually end time implies due)
-                // User said "If those 3 tasks' time are passed from the current time then show 'due task'"
-                // I'll use end time for "passed".
-                final isPassed = task.endTime.isBefore(now);
-                final isCompleted = task.isCompleted;
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isCompleted
-                          ? AppColors.accent.withOpacity(0.5)
-                          : Colors.transparent,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      // Checkbox
-                      GestureDetector(
-                        onTap: () {
-                          taskProvider.toggleTaskCompletion(task);
-                        },
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isCompleted
-                                ? AppColors.accent
-                                : Colors.transparent,
-                            border: Border.all(
-                              color: isCompleted
-                                  ? AppColors.accent
-                                  : AppColors.textSecondary,
-                              width: 2,
-                            ),
-                          ),
-                          child: isCompleted
-                              ? const Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: Colors.white,
-                                )
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Task Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              task.title,
-                              style: AppTextStyles.body.copyWith(
-                                decoration: isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                color: isCompleted
-                                    ? AppColors.textSecondary
-                                    : AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "${TimeOfDay.fromDateTime(task.startTime).format(context)} - ${TimeOfDay.fromDateTime(task.endTime).format(context)}",
-                              style: AppTextStyles.caption,
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Status Label
-                      if (!isCompleted)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isPassed
-                                ? Colors.red.withOpacity(0.1)
-                                : Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            isPassed ? "Due Task" : "Task to do",
-                            style: TextStyle(
-                              color: isPassed ? Colors.red : Colors.green,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                return TaskCard(
+                  key: ValueKey(task.id),
+                  task: task,
+                  onToggle: () => taskProvider.toggleTaskCompletion(task),
                 );
               }),
           ],
@@ -1056,5 +958,183 @@ class HomeDashboard extends StatelessWidget {
       default:
         return Icons.widgets;
     }
+  }
+}
+
+// TaskCard StatefulWidget with AnimationController for AnimatedCheck
+class TaskCard extends StatefulWidget {
+  final dynamic task;
+  final VoidCallback onToggle;
+
+  const TaskCard({super.key, required this.task, required this.onToggle});
+
+  @override
+  State<TaskCard> createState() => _TaskCardState();
+}
+
+class _TaskCardState extends State<TaskCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _animation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutCirc),
+    );
+
+    // Set initial state based on task completion
+    if (widget.task.isCompleted) {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(TaskCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Animate when completion status changes
+    if (widget.task.isCompleted != oldWidget.task.isCompleted) {
+      if (widget.task.isCompleted) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isPassed = widget.task.endTime.isBefore(now);
+    final isCompleted = widget.task.isCompleted;
+
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(widget.task.id),
+      tween: Tween<double>(begin: 1.0, end: isCompleted ? 0.0 : 1.0),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, (1 - value) * -20),
+          child: Opacity(opacity: value, child: child),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCompleted
+                ? AppColors.accent.withOpacity(0.5)
+                : Colors.transparent,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Animated Checkbox with AnimationController
+            GestureDetector(
+              onTap: widget.onToggle,
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Circle border (shows when unchecked)
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isCompleted
+                              ? Colors.transparent
+                              : AppColors.textSecondary,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    // Animated checkmark
+                    AnimatedCheck(
+                      progress: _animation,
+                      size: 40,
+                      color: AppColors.accent,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Task Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.task.title,
+                    style: AppTextStyles.body.copyWith(
+                      decoration: isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
+                      color: isCompleted
+                          ? AppColors.textSecondary
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${TimeOfDay.fromDateTime(widget.task.startTime).format(context)} - ${TimeOfDay.fromDateTime(widget.task.endTime).format(context)}",
+                    style: AppTextStyles.caption,
+                  ),
+                ],
+              ),
+            ),
+            // Status Label
+            if (!isCompleted)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isPassed
+                      ? Colors.red.withOpacity(0.1)
+                      : Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  isPassed ? "Due Task" : "Task to do",
+                  style: TextStyle(
+                    color: isPassed ? Colors.red : Colors.green,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
