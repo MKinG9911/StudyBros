@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../providers/exam_provider.dart';
 import '../models/exam_model.dart';
 import '../utils/constants.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class ExamScreen extends StatefulWidget {
   const ExamScreen({super.key});
@@ -24,7 +25,12 @@ class _ExamScreenState extends State<ExamScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Exam Preparation')),
+      appBar: AppBar(
+        title: const Text('Exam Preparation'),
+        actions: const [
+          ThemeToggleButton(),
+        ],
+      ),
       body: Consumer<ExamProvider>(
         builder: (context, examProvider, child) {
           if (examProvider.isLoading) {
@@ -195,9 +201,17 @@ class _ExamCardState extends State<ExamCard> {
             ),
           ),
         ),
-        title: Text(
-          widget.exam.subject,
-          style: AppTextStyles.heading2.copyWith(fontSize: 18),
+        title: Builder(
+          builder: (context) {
+            final color = Theme.of(context).colorScheme.onSurface;
+            return Text(
+              widget.exam.subject,
+              style: AppTextStyles.heading2.copyWith(
+                fontSize: 18,
+                color: color,
+              ),
+            );
+          },
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,6 +299,10 @@ class _ExamCardState extends State<ExamCard> {
                   ...widget.exam.syllabus.asMap().entries.map((entry) {
                     final index = entry.key;
                     final topic = entry.value;
+                    final theme = Theme.of(context);
+                    final activeColor = theme.colorScheme.onSurface;
+                    final completedColor = activeColor.withOpacity(0.5);
+
                     return CheckboxListTile(
                       title: Text(
                         topic.title,
@@ -293,8 +311,8 @@ class _ExamCardState extends State<ExamCard> {
                               ? TextDecoration.lineThrough
                               : null,
                           color: topic.isCompleted
-                              ? Colors.grey
-                              : Colors.black87,
+                              ? completedColor
+                              : activeColor,
                           fontSize: 14,
                         ),
                       ),

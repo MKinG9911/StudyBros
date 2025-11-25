@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../providers/task_provider.dart';
 import '../models/task_model.dart';
 import '../utils/constants.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class DailyPlannerScreen extends StatefulWidget {
   const DailyPlannerScreen({super.key});
@@ -30,6 +31,7 @@ class _DailyPlannerScreenState extends State<DailyPlannerScreen> {
       appBar: AppBar(
         title: const Text('Daily Planner'),
         actions: [
+          const ThemeToggleButton(),
           Consumer<TaskProvider>(
             builder: (context, taskProvider, child) {
               final tasksForDay = taskProvider.tasks.where((task) {

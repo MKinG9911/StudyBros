@@ -4,6 +4,7 @@ import 'dart:io';
 import '../models/class_routine_model.dart';
 import '../services/hive_service.dart';
 import '../utils/constants.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class ClassRoutineScreen extends StatefulWidget {
   const ClassRoutineScreen({super.key});
@@ -70,7 +71,12 @@ class _ClassRoutineScreenState extends State<ClassRoutineScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Class Routine')),
+      appBar: AppBar(
+        title: const Text('Class Routine'),
+        actions: const [
+          ThemeToggleButton(),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _routine == null

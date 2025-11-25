@@ -7,6 +7,7 @@ import '../providers/notes_provider.dart';
 import '../models/note_model.dart';
 import '../utils/constants.dart';
 import '../services/file_attachment_service.dart';
+import '../widgets/theme_toggle_button.dart';
 import 'note_detail_screen.dart';
 
 class NotesScreen extends StatefulWidget {
@@ -102,7 +103,12 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Quick Notes')),
+      appBar: AppBar(
+        title: const Text('Quick Notes'),
+        actions: const [
+          ThemeToggleButton(),
+        ],
+      ),
       body: Consumer<NotesProvider>(
         builder: (context, notesProvider, child) {
           if (notesProvider.isLoading) {

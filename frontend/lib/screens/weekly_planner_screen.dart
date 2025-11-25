@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/goal_provider.dart';
 import '../models/goal_model.dart';
-import '../utils/constants.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class WeeklyPlannerScreen extends StatefulWidget {
   const WeeklyPlannerScreen({super.key});
@@ -43,7 +43,12 @@ class _WeeklyPlannerScreenState extends State<WeeklyPlannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Weekly Goals')),
+      appBar: AppBar(
+        title: const Text('Weekly Goals'),
+        actions: const [
+          ThemeToggleButton(),
+        ],
+      ),
       body: Consumer<GoalProvider>(
         builder: (context, goalProvider, child) {
           if (goalProvider.isLoading) {

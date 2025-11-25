@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../providers/user_provider.dart';
 import '../models/user_model.dart';
 import '../utils/constants.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -73,7 +74,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Profile')),
+      appBar: AppBar(
+        title: const Text('Edit Profile'),
+        actions: const [
+          ThemeToggleButton(),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(

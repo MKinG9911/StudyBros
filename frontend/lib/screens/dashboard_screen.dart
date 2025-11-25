@@ -13,6 +13,7 @@ import '../providers/exam_provider.dart';
 import '../providers/focus_timer_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/dashboard_provider.dart';
+import '../widgets/theme_toggle_button.dart';
 import '../models/dashboard_section.dart';
 import 'profile_screen.dart';
 import 'focus_mode_screen.dart';
@@ -59,6 +60,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final unselectedColor =
+        colorScheme.onSurface.withOpacity(theme.brightness == Brightness.dark ? 0.6 : 0.5);
+
     return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 150),
@@ -79,6 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: colorScheme.surface,
         currentIndex: _selectedIndex,
         onTap: (index) {
           setState(() {
@@ -86,8 +93,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           });
         },
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
+        selectedItemColor: colorScheme.primary,
+        unselectedItemColor: unselectedColor,
         showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(
@@ -132,15 +139,21 @@ class HomeDashboard extends StatelessWidget {
       children: [
         Container(
           width: double.infinity,
-          color: AppColors.background,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(22),
+              bottomRight: Radius.circular(22),
+            ),
+          ),
           padding: EdgeInsets.only(
             top: MediaQuery.of(context).padding.top + 16,
             bottom: 16,
           ),
           alignment: Alignment.center,
-          child: Text(
+          child: const Text(
             "StudyBros",
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
               color: AppColors.primary,
@@ -183,13 +196,15 @@ class HomeDashboard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 16),
+                          const ThemeToggleButton(
+                            color: AppColors.primary,
+                          ),
                           IconButton(
                             icon: const Icon(Icons.tune, size: 24),
                             onPressed: () => _showCustomizeDialog(context),
                             tooltip: 'Customize Dashboard',
                             color: AppColors.primary,
                           ),
-                          const SizedBox(width: 8),
                           GestureDetector(
                             onTap: () {
                               Navigator.push(
@@ -229,7 +244,9 @@ class HomeDashboard extends StatelessWidget {
                               sectionWidget = _buildFocusTimerSection();
                               break;
                             case DashboardSectionType.dailyTasks:
-                              sectionWidget = _buildDailyTasksSection();
+                              sectionWidget = DailyTasksSection(
+                                onNavigateToTab: onNavigateToTab,
+                              );
                               break;
                             case DashboardSectionType.upcomingExams:
                               sectionWidget = _buildUpcomingExamsSection();
@@ -452,81 +469,6 @@ class HomeDashboard extends StatelessWidget {
               ],
             ),
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDailyTasksSection() {
-    return Consumer<TaskProvider>(
-      builder: (context, taskProvider, child) {
-        final today = DateTime.now();
-        final tasks = taskProvider.tasks.where((task) {
-          final isSameDay =
-              task.date.year == today.year &&
-              task.date.month == today.month &&
-              task.date.day == today.day;
-          return isSameDay;
-        }).toList();
-
-        // Sort by start time
-        tasks.sort((a, b) => a.startTime.compareTo(b.startTime));
-
-        // Filter out completed tasks, then take top 3
-        final incompleteTasks = tasks
-            .where((task) => !task.isCompleted)
-            .toList();
-        final displayTasks = incompleteTasks.take(3).toList();
-
-        return Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Daily Tasks", style: AppTextStyles.heading2),
-                TextButton(
-                  onPressed: () =>
-                      onNavigateToTab(1), // Navigate to Daily Planner
-                  child: const Text("View All"),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (displayTasks.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.task_alt,
-                      size: 48,
-                      color: AppColors.textSecondary.withOpacity(0.3),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "No tasks for today",
-                      style: AppTextStyles.body.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ...displayTasks.map((task) {
-                return TaskCard(
-                  key: ValueKey(task.id),
-                  task: task,
-                  onToggle: () => taskProvider.toggleTaskCompletion(task),
-                );
-              }),
-          ],
         );
       },
     );
@@ -875,7 +817,10 @@ class HomeDashboard extends StatelessWidget {
                   return ListTile(
                     key: ValueKey(section.id),
                     leading: Icon(_getSectionIcon(section.type)),
-                    title: Text(_getSectionName(section.type)),
+                    title: Text(
+                      _getSectionName(section.type),
+                      style: AppTextStyles.body.copyWith(fontSize: 12),
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -961,12 +906,131 @@ class HomeDashboard extends StatelessWidget {
   }
 }
 
+class DailyTasksSection extends StatefulWidget {
+  final Function(int) onNavigateToTab;
+
+  const DailyTasksSection({super.key, required this.onNavigateToTab});
+
+  @override
+  State<DailyTasksSection> createState() => _DailyTasksSectionState();
+}
+
+class _DailyTasksSectionState extends State<DailyTasksSection> {
+  final Set<String> _removingTaskIds = {};
+
+  Future<void> _handleToggle(TaskProvider provider, dynamic task) async {
+    if (_removingTaskIds.contains(task.id)) return;
+
+    provider.toggleTaskCompletion(task);
+    setState(() {
+      _removingTaskIds.add(task.id);
+    });
+
+    await Future.delayed(const Duration(milliseconds: 450));
+    if (!mounted) return;
+
+    setState(() {
+      _removingTaskIds.remove(task.id);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<TaskProvider>(
+      builder: (context, taskProvider, child) {
+        final today = DateTime.now();
+        final todayTasks = taskProvider.tasks.where((task) {
+          final isSameDay =
+              task.date.year == today.year &&
+              task.date.month == today.month &&
+              task.date.day == today.day;
+          return isSameDay;
+        }).toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+        final incompleteTasks =
+            todayTasks.where((task) => !task.isCompleted).toList();
+        final animatingTasks = todayTasks
+            .where((task) => _removingTaskIds.contains(task.id))
+            .toList();
+
+        final prioritizedTasks = [
+          ...incompleteTasks,
+          ...animatingTasks.where(
+            (task) => !incompleteTasks.any((inc) => inc.id == task.id),
+          ),
+        ];
+
+        final displayTasks = prioritizedTasks.take(3).toList();
+
+        return Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Daily Tasks", style: AppTextStyles.heading2),
+                TextButton(
+                  onPressed: () => widget.onNavigateToTab(1),
+                  child: const Text("View All"),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (displayTasks.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.task_alt,
+                      size: 48,
+                      color: AppColors.textSecondary.withOpacity(0.3),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No tasks for today",
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...displayTasks.map((task) {
+                final isAnimating = _removingTaskIds.contains(task.id);
+                return TaskCard(
+                  key: ValueKey(task.id),
+                  task: task,
+                  isRemoving: isAnimating,
+                  onToggle: () => _handleToggle(taskProvider, task),
+                );
+              }),
+          ],
+        );
+      },
+    );
+  }
+}
+
 // TaskCard StatefulWidget with AnimationController for AnimatedCheck
 class TaskCard extends StatefulWidget {
   final dynamic task;
   final VoidCallback onToggle;
+  final bool isRemoving;
 
-  const TaskCard({super.key, required this.task, required this.onToggle});
+  const TaskCard({
+    super.key,
+    required this.task,
+    required this.onToggle,
+    this.isRemoving = false,
+  });
 
   @override
   State<TaskCard> createState() => _TaskCardState();
@@ -976,6 +1040,7 @@ class _TaskCardState extends State<TaskCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  late bool _cachedCompletion;
 
   @override
   void initState() {
@@ -987,9 +1052,8 @@ class _TaskCardState extends State<TaskCard>
     _animation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOutCirc),
     );
-
-    // Set initial state based on task completion
-    if (widget.task.isCompleted) {
+    _cachedCompletion = widget.task.isCompleted;
+    if (_cachedCompletion) {
       _controller.value = 1.0;
     }
   }
@@ -997,9 +1061,10 @@ class _TaskCardState extends State<TaskCard>
   @override
   void didUpdateWidget(TaskCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Animate when completion status changes
-    if (widget.task.isCompleted != oldWidget.task.isCompleted) {
-      if (widget.task.isCompleted) {
+    final isCompleted = widget.task.isCompleted;
+    if (isCompleted != _cachedCompletion) {
+      _cachedCompletion = isCompleted;
+      if (isCompleted) {
         _controller.forward();
       } else {
         _controller.reverse();
@@ -1019,120 +1084,119 @@ class _TaskCardState extends State<TaskCard>
     final isPassed = widget.task.endTime.isBefore(now);
     final isCompleted = widget.task.isCompleted;
 
-    return TweenAnimationBuilder<double>(
+    return AnimatedSlide(
       key: ValueKey(widget.task.id),
-      tween: Tween<double>(begin: 1.0, end: isCompleted ? 0.0 : 1.0),
-      duration: const Duration(milliseconds: 400),
+      offset: widget.isRemoving ? const Offset(-0.4, 0) : Offset.zero,
+      duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOut,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - value) * -20),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: AnimatedContainer(
+      child: AnimatedOpacity(
+        opacity: widget.isRemoving ? 0 : 1,
         duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isCompleted
-                ? AppColors.accent.withOpacity(0.5)
-                : Colors.transparent,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+        curve: Curves.easeInOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isCompleted
+                  ? AppColors.accent.withOpacity(0.5)
+                  : Colors.transparent,
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Animated Checkbox with AnimationController
-            GestureDetector(
-              onTap: widget.onToggle,
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Circle border (shows when unchecked)
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isCompleted
-                              ? Colors.transparent
-                              : AppColors.textSecondary,
-                          width: 2,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Animated Checkbox with AnimationController
+              GestureDetector(
+                onTap: widget.isRemoving ? null : widget.onToggle,
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Circle border (shows when unchecked)
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isCompleted
+                                ? Colors.transparent
+                                : AppColors.textSecondary,
+                            width: 2,
+                          ),
                         ),
                       ),
+                      // Animated checkmark
+                      AnimatedCheck(
+                        progress: _animation,
+                        size: 40,
+                        color: AppColors.accent,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Task Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.task.title,
+                      style: AppTextStyles.body.copyWith(
+                        decoration: isCompleted
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: isCompleted
+                            ? AppColors.textSecondary
+                            : AppColors.textPrimary,
+                      ),
                     ),
-                    // Animated checkmark
-                    AnimatedCheck(
-                      progress: _animation,
-                      size: 40,
-                      color: AppColors.accent,
+                    const SizedBox(height: 4),
+                    Text(
+                      "${TimeOfDay.fromDateTime(widget.task.startTime).format(context)} - ${TimeOfDay.fromDateTime(widget.task.endTime).format(context)}",
+                      style: AppTextStyles.caption,
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            // Task Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.task.title,
-                    style: AppTextStyles.body.copyWith(
-                      decoration: isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
-                      color: isCompleted
-                          ? AppColors.textSecondary
-                          : AppColors.textPrimary,
+              // Status Label
+              if (!isCompleted)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isPassed
+                        ? Colors.red.withOpacity(0.1)
+                        : Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isPassed ? "Due Task" : "Task to do",
+                    style: TextStyle(
+                      color: isPassed ? Colors.red : Colors.green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "${TimeOfDay.fromDateTime(widget.task.startTime).format(context)} - ${TimeOfDay.fromDateTime(widget.task.endTime).format(context)}",
-                    style: AppTextStyles.caption,
-                  ),
-                ],
-              ),
-            ),
-            // Status Label
-            if (!isCompleted)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
                 ),
-                decoration: BoxDecoration(
-                  color: isPassed
-                      ? Colors.red.withOpacity(0.1)
-                      : Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isPassed ? "Due Task" : "Task to do",
-                  style: TextStyle(
-                    color: isPassed ? Colors.red : Colors.green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

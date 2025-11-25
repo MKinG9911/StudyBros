@@ -6,6 +6,7 @@ import '../models/note_model.dart';
 import '../utils/constants.dart';
 import '../services/file_attachment_service.dart';
 import '../providers/notes_provider.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class NoteDetailScreen extends StatefulWidget {
   final Note note;
@@ -141,6 +142,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
               );
             },
           ),
+          ThemeToggleButton(color: textColor),
           const SizedBox(width: 8),
         ],
       ),

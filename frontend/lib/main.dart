@@ -9,6 +9,7 @@ import 'providers/exam_provider.dart';
 import 'providers/focus_timer_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/dashboard_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/dashboard_screen.dart';
 import 'services/hive_service.dart';
 
@@ -44,12 +45,20 @@ class StudyBrosApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => FocusTimerProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: MaterialApp(
-        title: 'StudyBros',
-        debugShowCheckedModeBanner: false,
-        theme: appTheme,
-        home: const DashboardScreen(),
+      child: Builder(
+        builder: (context) {
+          final themeProvider = Provider.of<ThemeProvider>(context);
+          return MaterialApp(
+            title: 'StudyBros',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: const DashboardScreen(),
+          );
+        },
       ),
     );
   }
