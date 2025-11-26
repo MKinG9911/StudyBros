@@ -39,10 +39,10 @@ class AppTheme {
       primaryColor: AppColors.primary,
       fontFamily: 'Fredoka',
       textTheme: ThemeData.light().textTheme.apply(
-            fontFamily: 'Fredoka',
-            bodyColor: colorScheme.onBackground,
-            displayColor: colorScheme.onBackground,
-          ),
+        fontFamily: 'Fredoka',
+        bodyColor: colorScheme.onBackground,
+        displayColor: colorScheme.onBackground,
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -95,10 +95,10 @@ class AppTheme {
       primaryColor: AppColors.primary,
       fontFamily: 'Fredoka',
       textTheme: ThemeData.dark().textTheme.apply(
-            fontFamily: 'Fredoka',
-            bodyColor: colorScheme.onBackground,
-            displayColor: colorScheme.onBackground,
-          ),
+        fontFamily: 'Fredoka',
+        bodyColor: colorScheme.onBackground,
+        displayColor: colorScheme.onBackground,
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,

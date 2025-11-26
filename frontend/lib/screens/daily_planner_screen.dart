@@ -141,10 +141,12 @@ class _DailyPlannerScreenState extends State<DailyPlannerScreen> {
   }
 
   Widget _buildDateHeader() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? Colors.transparent : Colors.transparent,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -161,11 +163,15 @@ class _DailyPlannerScreenState extends State<DailyPlannerScreen> {
             children: [
               Text(
                 DateFormat('EEEE').format(_selectedDate),
-                style: AppTextStyles.heading2,
+                style: AppTextStyles.heading2.copyWith(
+                  color: isDarkMode ? Colors.white : null,
+                ),
               ),
               Text(
                 DateFormat('MMMM d, y').format(_selectedDate),
-                style: AppTextStyles.caption,
+                style: AppTextStyles.caption.copyWith(
+                  color: isDarkMode ? Colors.white70 : null,
+                ),
               ),
             ],
           ),

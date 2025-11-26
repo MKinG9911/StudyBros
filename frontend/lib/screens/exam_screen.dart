@@ -27,9 +27,7 @@ class _ExamScreenState extends State<ExamScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Exam Preparation'),
-        actions: const [
-          ThemeToggleButton(),
-        ],
+        actions: const [ThemeToggleButton()],
       ),
       body: Consumer<ExamProvider>(
         builder: (context, examProvider, child) {
@@ -234,6 +232,8 @@ class _ExamCardState extends State<ExamCard> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const Icon(Icons.add, color: AppColors.primary),
+            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
               onPressed: () => _showEditExamDialog(context),

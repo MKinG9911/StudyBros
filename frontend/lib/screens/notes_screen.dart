@@ -105,9 +105,7 @@ class _NotesScreenState extends State<NotesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Quick Notes'),
-        actions: const [
-          ThemeToggleButton(),
-        ],
+        actions: const [ThemeToggleButton()],
       ),
       body: Consumer<NotesProvider>(
         builder: (context, notesProvider, child) {
@@ -305,165 +303,174 @@ class _NotesScreenState extends State<NotesScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text("New Note"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: "Title",
-                  hintText: "e.g., Physics Formulas",
-                  hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
-                  border: const OutlineInputBorder(),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.primary, width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: contentController,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  labelText: "Content",
-                  hintText: "Write your note here...",
-                  hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
-                  border: const OutlineInputBorder(),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.primary, width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text("Attachments", style: AppTextStyles.heading2),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      final paths = await FileAttachmentService.pickImages();
-                      setState(() {
-                        selectedImagePaths.addAll(paths);
-                      });
-                    },
-                    icon: const Icon(Icons.image, size: 18),
-                    label: const Text("Images"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: "Title",
+                    hintText: "e.g., Physics Formulas",
+                    hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey.shade400),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      final paths = await FileAttachmentService.pickPDFs();
-                      setState(() {
-                        selectedPdfPaths.addAll(paths);
-                      });
-                    },
-                    icon: const Icon(Icons.picture_as_pdf, size: 18),
-                    label: const Text("PDFs"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      foregroundColor: Colors.white,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: contentController,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: "Content",
+                    hintText: "Write your note here...",
+                    hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
+                    border: const OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey.shade400),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
-                ],
-              ),
-              if (selectedImagePaths.isNotEmpty || selectedPdfPaths.isNotEmpty)
+                ),
+                const SizedBox(height: 16),
+                const Text("Attachments", style: AppTextStyles.heading2),
                 const SizedBox(height: 8),
-              if (selectedImagePaths.isNotEmpty)
-                Wrap(
-                  spacing: 4,
-                  children: selectedImagePaths.map((path) {
-                    return Chip(
-                      avatar: const Icon(Icons.image, size: 16),
-                      label: Text(
-                        FileAttachmentService.getFileName(path),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      onDeleted: () {
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final paths = await FileAttachmentService.pickImages();
                         setState(() {
-                          selectedImagePaths.remove(path);
+                          selectedImagePaths.addAll(paths);
                         });
                       },
-                      deleteIconColor: Colors.red,
-                    );
-                  }).toList(),
-                ),
-              if (selectedPdfPaths.isNotEmpty)
-                Wrap(
-                  spacing: 4,
-                  children: selectedPdfPaths.map((path) {
-                    return Chip(
-                      avatar: const Icon(Icons.picture_as_pdf, size: 16),
-                      label: Text(
-                        FileAttachmentService.getFileName(path),
-                        style: const TextStyle(fontSize: 12),
+                      icon: const Icon(Icons.image, size: 18),
+                      label: const Text("Images"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
                       ),
-                      onDeleted: () {
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final paths = await FileAttachmentService.pickPDFs();
                         setState(() {
-                          selectedPdfPaths.remove(path);
+                          selectedPdfPaths.addAll(paths);
                         });
                       },
-                      deleteIconColor: Colors.red,
-                    );
-                  }).toList(),
+                      icon: const Icon(Icons.picture_as_pdf, size: 18),
+                      label: const Text("PDFs"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
-              const SizedBox(height: 16),
-              const Text("Color", style: AppTextStyles.heading2),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: colors.map((color) {
-                    final isSelected = color.value == selectedColorValue;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => selectedColorValue = color.value);
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.grey[300]!,
-                            width: isSelected ? 2 : 1,
-                          ),
-                          boxShadow: [
-                            if (isSelected)
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.3),
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
-                          ],
+                if (selectedImagePaths.isNotEmpty ||
+                    selectedPdfPaths.isNotEmpty)
+                  const SizedBox(height: 8),
+                if (selectedImagePaths.isNotEmpty)
+                  Wrap(
+                    spacing: 4,
+                    children: selectedImagePaths.map((path) {
+                      return Chip(
+                        avatar: const Icon(Icons.image, size: 16),
+                        label: Text(
+                          FileAttachmentService.getFileName(path),
+                          style: const TextStyle(fontSize: 12),
                         ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                size: 16,
-                                color: AppColors.primary,
-                              )
-                            : null,
-                      ),
-                    );
-                  }).toList(),
+                        onDeleted: () {
+                          setState(() {
+                            selectedImagePaths.remove(path);
+                          });
+                        },
+                        deleteIconColor: Colors.red,
+                      );
+                    }).toList(),
+                  ),
+                if (selectedPdfPaths.isNotEmpty)
+                  Wrap(
+                    spacing: 4,
+                    children: selectedPdfPaths.map((path) {
+                      return Chip(
+                        avatar: const Icon(Icons.picture_as_pdf, size: 16),
+                        label: Text(
+                          FileAttachmentService.getFileName(path),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        onDeleted: () {
+                          setState(() {
+                            selectedPdfPaths.remove(path);
+                          });
+                        },
+                        deleteIconColor: Colors.red,
+                      );
+                    }).toList(),
+                  ),
+                const SizedBox(height: 16),
+                const Text("Color", style: AppTextStyles.heading2),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: colors.map((color) {
+                      final isSelected = color.value == selectedColorValue;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => selectedColorValue = color.value);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.grey[300]!,
+                              width: isSelected ? 2 : 1,
+                            ),
+                            boxShadow: [
+                              if (isSelected)
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.3),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                            ],
+                          ),
+                          child: isSelected
+                              ? const Icon(
+                                  Icons.check,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                )
+                              : null,
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/focus_timer_provider.dart';
 import '../utils/constants.dart';
-import '../widgets/theme_toggle_button.dart';
 
 class FocusModeScreen extends StatelessWidget {
   const FocusModeScreen({super.key});
@@ -71,13 +70,6 @@ class FocusModeScreen extends StatelessWidget {
 
               return Stack(
                 children: [
-                  const Positioned(
-                    top: 8,
-                    right: 8,
-                    child: ThemeToggleButton(
-                      color: Colors.white,
-                    ),
-                  ),
                   // Main Content - Scrollable
                   Padding(
                     padding: EdgeInsets.only(

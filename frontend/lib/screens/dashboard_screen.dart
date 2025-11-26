@@ -43,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           });
         },
       ),
+
       const DailyPlannerScreen(),
       const WeeklyPlannerScreen(),
       const ExamScreen(),
@@ -62,8 +63,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final unselectedColor =
-        colorScheme.onSurface.withOpacity(theme.brightness == Brightness.dark ? 0.6 : 0.5);
+    final unselectedColor = colorScheme.onSurface.withOpacity(
+      theme.brightness == Brightness.dark ? 0.6 : 0.5,
+    );
 
     return Scaffold(
       body: AnimatedSwitcher(
@@ -103,16 +105,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_today),
-            label: 'Daily',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.view_week_outlined),
-            activeIcon: Icon(Icons.view_week),
-            label: 'Weekly',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.school_outlined),
             activeIcon: Icon(Icons.school),
             label: 'Exams',
@@ -121,6 +113,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Icon(Icons.note_outlined),
             activeIcon: Icon(Icons.note),
             label: 'Notes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined),
+            activeIcon: Icon(Icons.calendar_today),
+            label: 'Daily',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.view_week_outlined),
+            activeIcon: Icon(Icons.view_week),
+            label: 'Weekly',
           ),
         ],
       ),
@@ -181,7 +183,11 @@ class HomeDashboard extends StatelessWidget {
                               children: [
                                 Text(
                                   "Hello, ${user.name}!",
-                                  style: AppTextStyles.heading1,
+                                  style: AppTextStyles.heading1.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground,
+                                  ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
@@ -196,9 +202,7 @@ class HomeDashboard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          const ThemeToggleButton(
-                            color: AppColors.primary,
-                          ),
+                          const ThemeToggleButton(color: AppColors.primary),
                           IconButton(
                             icon: const Icon(Icons.tune, size: 24),
                             onPressed: () => _showCustomizeDialog(context),
@@ -490,7 +494,12 @@ class HomeDashboard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Upcoming Exams", style: AppTextStyles.heading2),
+                  Text(
+                    "Upcoming Exams",
+                    style: AppTextStyles.heading2.copyWith(
+                      color: Theme.of(context).colorScheme.onBackground,
+                    ),
+                  ),
                   TextButton(
                     onPressed: () => onNavigateToTab(3),
                     child: const Text("View All"),
@@ -535,7 +544,12 @@ class HomeDashboard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Upcoming Exams", style: AppTextStyles.heading2),
+                Text(
+                  "Upcoming Exams",
+                  style: AppTextStyles.heading2.copyWith(
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
                 TextButton(
                   onPressed: () => onNavigateToTab(3),
                   child: const Text("View All"),
@@ -544,7 +558,7 @@ class HomeDashboard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ...topExams.map((exam) {
-              final daysLeft = exam.examDate.difference(DateTime.now()).inDays;
+              final daysLeft = exam.daysRemaining;
 
               Color statusColor;
               if (daysLeft <= 1) {
@@ -624,7 +638,12 @@ class HomeDashboard extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Class Routine", style: AppTextStyles.heading2),
+            Text(
+              "Class Routine",
+              style: AppTextStyles.heading2.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+              ),
+            ),
             const SizedBox(height: 16),
             GestureDetector(
               onTap: () {
@@ -731,7 +750,12 @@ class HomeDashboard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Quick Notes", style: AppTextStyles.heading2),
+                Text(
+                  "Quick Notes",
+                  style: AppTextStyles.heading2.copyWith(
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
                 TextButton(
                   onPressed: () => onNavigateToTab(4),
                   child: const Text("View All"),
@@ -819,7 +843,12 @@ class HomeDashboard extends StatelessWidget {
                     leading: Icon(_getSectionIcon(section.type)),
                     title: Text(
                       _getSectionName(section.type),
-                      style: AppTextStyles.body.copyWith(fontSize: 12),
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 12,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppColors.textPrimary,
+                      ),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -945,11 +974,11 @@ class _DailyTasksSectionState extends State<DailyTasksSection> {
               task.date.month == today.month &&
               task.date.day == today.day;
           return isSameDay;
-        }).toList()
-          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+        }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
 
-        final incompleteTasks =
-            todayTasks.where((task) => !task.isCompleted).toList();
+        final incompleteTasks = todayTasks
+            .where((task) => !task.isCompleted)
+            .toList();
         final animatingTasks = todayTasks
             .where((task) => _removingTaskIds.contains(task.id))
             .toList();
@@ -968,7 +997,12 @@ class _DailyTasksSectionState extends State<DailyTasksSection> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Daily Tasks", style: AppTextStyles.heading2),
+                Text(
+                  "Daily Tasks",
+                  style: AppTextStyles.heading2.copyWith(
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
                 TextButton(
                   onPressed: () => widget.onNavigateToTab(1),
                   child: const Text("View All"),
