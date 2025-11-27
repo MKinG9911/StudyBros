@@ -104,16 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             activeIcon: Icon(Icons.dashboard),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.school_outlined),
-            activeIcon: Icon(Icons.school),
-            label: 'Exams',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.note_outlined),
-            activeIcon: Icon(Icons.note),
-            label: 'Notes',
-          ),
+          
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_outlined),
             activeIcon: Icon(Icons.calendar_today),
@@ -124,6 +115,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             activeIcon: Icon(Icons.view_week),
             label: 'Weekly',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.school_outlined),
+            activeIcon: Icon(Icons.school),
+            label: 'Exams',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.note_outlined),
+            activeIcon: Icon(Icons.note),
+            label: 'Notes',
+          ),
+        
         ],
       ),
     );
